@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mysql-ventas:
+    image: mysql:8.0
+    container_name: mysql-ventas
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_ventas_data:/var/lib/mysql
+    networks:
+      - ventas-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ventas-api:
+    build: .
+    container_name: ventas-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_ENDPOINT: mysql-ventas
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      mysql-ventas:
+        condition: service_healthy
+    networks:
+      - ventas-network
+
+volumes:
+  mysql_ventas_data:
+    name: mysql_ventas_data
+
+networks:
+  ventas-network:
+    driver: bridge
